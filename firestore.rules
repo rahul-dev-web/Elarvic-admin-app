@@ -8,20 +8,29 @@ service cloud.firestore {
     function isAdmin() {
       return signedIn()
         && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
-        && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.active == true;
+        && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.active == true
+        && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'admin';
     }
 
     match /admins/{uid} {
-      allow read: if signedIn() && request.auth.uid == uid;
-      allow write: if false;
+      // An administrator can read their own authorization record.
+      allow get: if signedIn() && request.auth.uid == uid;
+      allow list: if false;
+      allow create, update, delete: if false;
     }
 
     match /keys/{keyId} {
+      // Admins can list/read issued keys. A normal user can only validate
+      // the exact key they supplied, and only while it is active and unexpired.
       allow read: if isAdmin();
+      allow get: if signedIn()
+        && resource.data.active == true
+        && resource.data.expiresAt > request.time;
       allow create: if isAdmin()
         && request.resource.data.active == true
         && request.resource.data.createdBy == request.auth.uid
-        && request.resource.data.durationDays in [3, 6, 15];
+        && request.resource.data.durationDays in [3, 6, 15]
+        && request.resource.data.expiresAt > request.time;
       allow update: if isAdmin();
       allow delete: if isAdmin();
     }
