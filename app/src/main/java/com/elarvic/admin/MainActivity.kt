@@ -8,6 +8,7 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -16,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -105,12 +107,7 @@ private fun AdminApp(auth: FirebaseAuth, googleClient: GoogleSignInClient, launc
             .addSnapshotListener { snapshot, e ->
                 if (e != null) { error = e.message; return@addSnapshotListener }
                 keys = snapshot?.documents?.map { d ->
-                    AccessKey(
-                        value = d.id,
-                        days = d.getLong("durationDays") ?: 0,
-                        active = d.getBoolean("active") ?: false,
-                        expiresAt = d.getTimestamp("expiresAt")?.toDate()
-                    )
+                    AccessKey(d.id, d.getLong("durationDays") ?: 0, d.getBoolean("active") ?: false, d.getTimestamp("expiresAt")?.toDate())
                 } ?: emptyList()
             }
     }
@@ -150,7 +147,7 @@ private fun AdminApp(auth: FirebaseAuth, googleClient: GoogleSignInClient, launc
         Button(onClick = {
             val value = generateKey()
             val calendar = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, selectedDays.toInt()) }
-            val data = hashMapOf(
+            val data = hashMapOf<String, Any>(
                 "active" to true,
                 "durationDays" to selectedDays,
                 "createdAt" to Timestamp.now(),
@@ -185,11 +182,9 @@ private fun AdminApp(auth: FirebaseAuth, googleClient: GoogleSignInClient, launc
                     Column(Modifier.padding(14.dp)) {
                         Text(key.value, style = MaterialTheme.typography.titleMedium)
                         Text("${key.days} days · ${if (expired) "Expired" else if (key.active) "Active" else "Revoked"}")
-                        Text("Expires: ${key.expiresAt?.let(DateFormat.getDateTimeInstance()::format) ?: "—"}")
+                        Text("Expires: ${key.expiresAt?.let { DateFormat.getDateTimeInstance().format(it) } ?: "—"}")
                         if (key.active) {
-                            TextButton(onClick = {
-                                db.collection("keys").document(key.value).update("active", false)
-                            }) { Text("Revoke") }
+                            TextButton(onClick = { db.collection("keys").document(key.value).update("active", false) }) { Text("Revoke") }
                         }
                     }
                 }
@@ -210,6 +205,8 @@ private fun generateKey(): String {
 @Composable
 private fun LoginScreen(onGoogle: () -> Unit, error: String?) {
     Column(Modifier.fillMaxSize().padding(24.dp), Arrangement.Center, Alignment.CenterHorizontally) {
+        Image(painterResource(R.drawable.elarvic_mark), contentDescription = "Elarvic logo", modifier = Modifier.size(110.dp))
+        Spacer(Modifier.height(8.dp))
         Text("ELARVIC", style = MaterialTheme.typography.headlineLarge)
         Text("Admin Panel", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 4.dp))
         Text("Google sign-in is required for administrators.", modifier = Modifier.padding(vertical = 12.dp))
