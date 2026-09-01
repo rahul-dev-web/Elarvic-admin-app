@@ -1,48 +1,28 @@
 # Elarvic Admin App
 
-Separate Android admin application for **Elarvic V1**.
+Separate Android admin application for **Elarvic V1**. It uses the same Firebase project as the User App.
 
-## Admin flow
+## Completed flow
 
-1. Administrator signs in with Google using Firebase Authentication.
-2. The signed-in Firebase UID must exist in `admins/{uid}` and have `active: true`.
-3. Admin selects an access duration: **3 days**, **6 days**, or **15 days**.
-4. The app generates a high-entropy key in the form `ELARVIC_<random>`.
-5. The key is stored in Firestore with its creation time, expiry time, duration, active status, and creator UID.
-6. Admin can copy the key and send it to the user.
-7. Admin can view issued keys and revoke an active key.
-
-## Firebase setup
-
-1. Use the same Firebase project as the Elarvic User App.
-2. Add Android app ID `com.elarvic.admin`.
-3. Enable Google Authentication.
-4. Add the first authorized administrator manually in Firestore:
-
-`admins/{firebaseUid}`
-
-```text
-active: true
-```
-
-5. Download `google-services.json` into `app/`.
-6. Put the Firebase Web client ID in `app/src/main/res/values/strings.xml`.
-7. Deploy `firestore.rules` before production use.
-
-## Key data
-
-`keys/{ELARVIC_xxxxxxxxxxxx}`
-
-```text
-active: true
-createdAt: timestamp
-durationDays: 3 | 6 | 15
-expiresAt: timestamp
-createdBy: admin uid
-```
+1. Administrator signs in with Google.
+2. Firebase Auth identifies the administrator.
+3. Firestore `admins/{uid}` is checked for `active: true`.
+4. Admin chooses a key lifetime: **3, 6 or 15 days**.
+5. App generates an `ELARVIC_XXXXXXXXXXXX` access key.
+6. Admin copies the key and sends it to the user.
+7. Admin can search issued keys and revoke active keys.
+8. Dashboard shows total, active and expired keys.
 
 ## Security model
 
-Only an authorized admin UID can create, update, revoke, or list keys. The user app uses Firebase Anonymous Authentication only for the key-validation read and does not receive admin credentials.
+Admin access is determined by the Firestore `admins` collection, not by a client-side boolean. The Firestore rules only allow authorized admins to create/read/update/delete key documents. The first admin UID must be seeded manually in Firestore.
 
-`google-services.json`, signing files, local properties, and environment secrets must not be committed.
+## Branding
+
+The admin app uses the Elarvic black/silver visual system and the supplied Elarvic mark.
+
+## Firebase setup
+
+See [`FIREBASE_SETUP.md`](FIREBASE_SETUP.md) for the complete Firebase configuration, SHA fingerprints, Google provider, Anonymous Auth, Firestore collections and rules setup.
+
+`google-services.json` and signing files are intentionally ignored by Git.
